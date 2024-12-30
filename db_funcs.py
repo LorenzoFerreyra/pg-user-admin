@@ -1,50 +1,78 @@
-import sqlite3
-conn = sqlite3.connect('data.db',check_same_thread=False)
-c = conn.cursor()
+import streamlit as st
+from sqlalchemy import text, create_engine
+import pandas as pd
+from sqlalchemy.exc import SQLAlchemyError
+import bcrypt
 
-def create_table():
-    c.execute('CREATE TABLE IF NOT EXISTS taskstable(task TEXT, task_status TEXT, task_due_date DATE, tags TEXT)')
+db_config = st.secrets["connections"]["postgresql"]
 
-def add_data(task, task_status, task_due_date, tags):
-    c.execute('INSERT INTO taskstable(task, task_status, task_due_date, tags) VALUES (?, ?, ?, ?)', (task, task_status, task_due_date, tags))
-    conn.commit()
 
-def view_all_data():
-    c.execute('SELECT * FROM taskstable')
-    data = c.fetchall()
-    return data
+# Configuración del motor de base de datos usando secretos
+engine = create_engine(
+    f"{db_config['dialect']}://{db_config['username']}:{db_config['password']}@{db_config['host']}:{db_config['port']}/{db_config['database']}",
+    connect_args={'options': '-csearch_path=public'}
+)
 
-def view_all_task_names():
-    c.execute('SELECT DISTINCT task FROM taskstable')
-    data = c.fetchall()
-    return data
+def get_users():
+    query = text('SELECT user_code, user_fullname, user_email, user_username FROM public."user"')
+    try:
+        df = pd.read_sql(query, engine)
+        return df
+    except SQLAlchemyError as e:
+        st.error(f"Error al obtener usuarios: {e}")
+        return pd.DataFrame()
 
-def view_all_tags():
-    c.execute('SELECT DISTINCT tags FROM taskstable')
-    data = c.fetchall()
-    return data
 
-def get_task(task):
-    c.execute('SELECT * FROM taskstable WHERE task="{}"'.format(task))
-    data = c.fetchall()
-    return data
+# Función para agregar un usuario
+def add_user(user_code, fullname, email, username, password):
+    hashed_password = bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
+    query = text("""
+        INSERT INTO user (user_code, user_fullname, user_email, user_username, user_password)
+        VALUES (:user_code, :fullname, :email, :username, :password)
+    """)
+    try:
+        with engine.connect() as conn:
+            conn.execute(query, {
+                "user_code": user_code,
+                "fullname": fullname,
+                "email": email,
+                "username": username,
+                "password": hashed_password
+            })
+        st.success("Usuario agregado exitosamente.")
+    except SQLAlchemyError as e:
+        st.error(f"Error al agregar usuario: {e}")
 
-def get_task_by_status(task_status):
-    c.execute('SELECT * FROM taskstable WHERE task_status="{}"'.format(task_status))
-    data = c.fetchall()
-    return data
+# Función para actualizar un usuario
+def update_user(user_code, fullname, email, username, password):
+    hashed_password = bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
+    query = text("""
+        UPDATE user
+        SET user_fullname = :fullname,
+            user_email = :email,
+            user_username = :username,
+            user_password = :password
+        WHERE user_code = :user_code
+    """)
+    try:
+        with engine.connect() as conn:
+            conn.execute(query, {
+                "user_code": user_code,
+                "fullname": fullname,
+                "email": email,
+                "username": username,
+                "password": hashed_password
+            })
+        st.success("Usuario actualizado exitosamente.")
+    except SQLAlchemyError as e:
+        st.error(f"Error al actualizar usuario: {e}")
 
-def get_tag_selected(tag):
-    c.execute('SELECT * FROM taskstable WHERE tags="{}"'.format(tag))
-    data = c.fetchall()
-    return data
-
-def edit_task_data(new_task, new_task_status, new_task_date, task, task_status, task_due_date, new_tags):
-    c.execute("UPDATE taskstable SET task=?, task_status=?, task_due_date=?, tags=? WHERE task=? and task_status=? and task_due_date=?", (new_task, new_task_status, new_task_date, new_tags, task, task_status, task_due_date))
-    conn.commit()
-    data = c.fetchall()
-    return data
-
-def delete_data(task):
-    c.execute('DELETE FROM taskstable WHERE task="{}"'.format(task))
-    conn.commit()
+# Función para eliminar un usuario
+def delete_user(user_code):
+    query = text("DELETE FROM user WHERE user_code = :user_code")
+    try:
+        with engine.connect() as conn:
+            conn.execute(query, {"user_code": user_code})
+        st.success("Usuario eliminado exitosamente.")
+    except SQLAlchemyError as e:
+        st.error(f"Error al eliminar usuario: {e}")

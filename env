@@ -1,0 +1,20 @@
+# Configuración general
+SECRET_KEY=tu_clave_secreta_aquí
+DEBUG=True
+
+# Configuración de correo electrónico
+EMAIL_USER_DEV=tu_email@ejemplo.com
+EMAIL_PASSWORD_DEV=tu_contraseña_de_email
+
+# Configuración de la base de datos
+DBNAME_DEV='scorecard_software'
+DBUSER_DEV='ricardo_sojo'
+DBPASSWORD_DEV='FF73FVSlXZbzP2WAL2IG6rE7xN7zbYt0'
+DBHOST_DEV='dpg-crjmj7u8ii6s73fhr7r0-a.ohio-postgres.render.com'
+DBPORT_DEV=5432
+
+# Dominio
+DOMAIN_DEV=ricardosojo.com
+
+# Modo de ejecución (dev o prod)
+APP_ENV=dev
