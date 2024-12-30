@@ -34,14 +34,13 @@ choice = st.sidebar.selectbox("Menu", menu)
 
 if choice == "Crear Usuario ✅":
     st.subheader("Añadir Usuario")
-    user_code = st.text_input("Código de Usuario")
     fullname = st.text_input("Nombre Completo")
     email = st.text_input("Correo Electrónico")
     username = st.text_input("Nombre de Usuario")
     password = st.text_input("Contraseña", type="password")
 
     if st.button("Agregar Usuario"):
-        add_user(user_code, fullname, email, username, password)
+        add_user(fullname, email, username, password)
 
 elif choice == "Actualizar Usuario 👨‍💻":
     st.subheader("Actualizar Usuario")
@@ -75,7 +74,7 @@ elif choice == "Ver Usuarios 🧾":
     st.subheader("Lista de Usuarios")
     users = get_users()
     if not users.empty:
-        st.dataframe(users)
+        st.dataframe(users, hide_index=True)
     else:
         st.warning("No hay usuarios registrados.")
 

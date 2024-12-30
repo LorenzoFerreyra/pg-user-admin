@@ -23,17 +23,22 @@ def get_users():
         return pd.DataFrame()
 
 
-# Función para agregar un usuario
-def add_user(user_code, fullname, email, username, password):
+def add_user(fullname, email, username, password):
     hashed_password = bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
-    query = text("""
-        INSERT INTO user (user_code, user_fullname, user_email, user_username, user_password)
-        VALUES (:user_code, :fullname, :email, :username, :password)
-    """)
     try:
         with engine.connect() as conn:
+            # Obtener el último user_code y sumarle 1
+            result = conn.execute("SELECT MAX(user_code) FROM \"user\"").fetchone()
+            last_user_code = result[0]  # Obtener el valor máximo de user_code
+            new_user_code = last_user_code + 1 if last_user_code is not None else 1  # Si es el primer usuario, asigna 1
+
+            # Insertar el nuevo usuario
+            query = text("""
+                INSERT INTO "user" (user_code, user_fullname, user_email, user_username, user_password)
+                VALUES (:user_code, :fullname, :email, :username, :password)
+            """)
             conn.execute(query, {
-                "user_code": user_code,
+                "user_code": new_user_code,
                 "fullname": fullname,
                 "email": email,
                 "username": username,
@@ -42,6 +47,8 @@ def add_user(user_code, fullname, email, username, password):
         st.success("Usuario agregado exitosamente.")
     except SQLAlchemyError as e:
         st.error(f"Error al agregar usuario: {e}")
+
+
 
 # Función para actualizar un usuario
 def update_user(user_code, fullname, email, username, password):
